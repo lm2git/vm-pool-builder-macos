@@ -1,0 +1,5 @@
+- name: Configura le VM Ubuntu
+  hosts: lab
+  become: true
+  roles:
+    - common

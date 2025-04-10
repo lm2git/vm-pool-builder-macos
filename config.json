@@ -1,0 +1,9 @@
+{
+    "interface": "en0",
+    "domain": "lab.local",
+    "root_password": "ubuntu",
+    "vms": [
+      { "name": "ubuntu1" }
+    ]
+  }
+  
