@@ -1,4 +1,4 @@
-- name: Configura le VM Ubuntu
+- name: Configure the ubuntu VMs
   hosts: lab
   become: true
   roles:

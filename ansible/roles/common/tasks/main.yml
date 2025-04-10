@@ -1,4 +1,4 @@
-- name: Genera /etc/hosts condiviso
+- name: Generate shared file /etc/hosts 
   template:
     src: hosts.j2
     dest: /etc/hosts
