@@ -2,7 +2,7 @@
 
 # warning: this script will delete only VMs defined in the config.json file
 
-CONFIG_FILE="config.json"
+CONFIG_FILE="../config.json"
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
   echo "Error: $CONFIG_FILE not found!"
