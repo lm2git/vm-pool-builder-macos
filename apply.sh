@@ -40,6 +40,13 @@ done
 # Purge deleted VMs
 multipass purge
 
+# Ensure SSH keys exist
+if [[ ! -f "ssh_keys/id_rsa" || ! -f "ssh_keys/id_rsa.pub" ]]; then
+  echo -e "${YELLOW}SSH keys not found. Generating new SSH keys...${RESET}"
+  mkdir -p ssh_keys
+  ssh-keygen -t rsa -b 2048 -f ssh_keys/id_rsa -q -N ""
+fi
+
 # Add or update VMs based on config.json
 for VM_CONFIG in $(jq -c '.vms[]' "$CONFIG_FILE"); do
   NAME=$(echo "$VM_CONFIG" | jq -r '.name')
@@ -58,13 +65,20 @@ for VM_CONFIG in $(jq -c '.vms[]' "$CONFIG_FILE"); do
 
   # Generate cloud-init file
   echo -e "${CYAN}Generating cloud-init for $NAME...${RESET}"
-  python3 generate_cloud_init.py "$NAME"
+  mkdir -p cloud-init
+  if ! python3 generate_cloud_init.py "$NAME"; then
+    echo -e "${RED}Error: Failed to generate cloud-init for $NAME. Skipping VM creation.${RESET}"
+    continue
+  fi
 
   # Launch VM
-  multipass launch 22.04 --name "$NAME" \
+  if ! multipass launch 22.04 --name "$NAME" \
     --cpus "$CPUS" --memory "$MEMORY" --disk "$DISK" \
     --cloud-init "cloud-init/$NAME.yaml" \
-    --timeout 300
+    --timeout 300; then
+    echo -e "${RED}Error: Failed to launch VM $NAME. Skipping.${RESET}"
+    continue
+  fi
 done
 
 # Generate the inventory.ini file
