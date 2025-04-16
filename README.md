@@ -78,8 +78,7 @@ Edit the `config.json` file to define your VM specifications. Example:
 Make the script executable and run it:
 
 ```bash
-chmod +x apply.sh
-./apply.sh
+chmod +x apply.sh && ./apply.sh
 ```
 
 - The script installs prerequisites if not already installed.

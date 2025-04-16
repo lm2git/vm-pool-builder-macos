@@ -66,15 +66,32 @@ for VM_CONFIG in $(jq -c '.vms[]' "$CONFIG_FILE"); do
       echo -e "${YELLOW}Stopping VM to apply new specifications...${RESET}"
       multipass stop "$NAME"
 
-      echo -e "${CYAN}Applying new specifications: CPUs=$CPUS, Memory=$MEMORY, Disk=$DISK${RESET}"
-      multipass set "$NAME" cpus="$CPUS" memory="$MEMORY" disk="$DISK" || {
-        echo -e "${RED}Error: Failed to update specifications for $NAME. Restarting VM.${RESET}"
+      echo -e "${CYAN}Preserving disk data for $NAME...${RESET}"
+      DISK_PATH=$(multipass info "$NAME" | grep "Mounts" -A 1 | tail -n 1 | awk '{print $2}')
+      if [[ -z "$DISK_PATH" ]]; then
+        echo -e "${RED}Error: Could not retrieve disk path for $NAME. Skipping update.${RESET}"
         multipass start "$NAME"
         continue
-      }
+      fi
 
-      echo -e "${GREEN}Restarting VM: $NAME${RESET}"
-      multipass start "$NAME"
+      echo -e "${YELLOW}Deleting VM $NAME to recreate with updated specifications...${RESET}"
+      multipass delete "$NAME"
+      multipass purge
+
+      echo -e "${GREEN}Recreating VM $NAME with updated specifications...${RESET}"
+      if ! multipass launch 22.04 --name "$NAME" \
+        --cpus "$CPUS" --memory "$MEMORY" --disk "$DISK" \
+        --cloud-init "cloud-init/$NAME.yaml" \
+        --timeout 300; then
+        echo -e "${RED}Error: Failed to recreate VM $NAME. Skipping.${RESET}"
+        continue
+      fi
+
+      echo -e "${CYAN}Reattaching preserved disk data to $NAME...${RESET}"
+      multipass mount "$DISK_PATH" "$NAME:/mnt" || {
+        echo -e "${RED}Error: Failed to reattach disk data to $NAME.${RESET}"
+        continue
+      }
     else
       echo -e "${GREEN}VM $NAME already matches the desired specifications. Skipping update.${RESET}"
     fi
