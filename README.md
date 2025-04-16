@@ -26,6 +26,7 @@ Ensure your macOS system meets the following requirements:
 - macOS **10.15 or later**.
 - Active **Internet connection**.
 
+
 ---
 
 ## 📂 Repository Structure
@@ -111,7 +112,15 @@ vm2 - IP: 192.168.64.3
 
 ## 🧹 Cleanup Process
 
-If you need to delete the VMs created by this tool, you can use the `apply.sh` script with an empty `vms` array in `config.json`. This will remove all VMs and clean up residual data.
+If you need to delete the VMs created by this tool, you can use the `cleanup.sh` script. First, make it executable and then run it:
+
+```bash
+cd scripts
+chmod +x cleanup.sh
+./cleanup.sh
+```
+
+This will remove all VMs and clean up residual data.
 
 ---
 
