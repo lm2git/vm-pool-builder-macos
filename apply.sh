@@ -28,6 +28,24 @@ function check_config_file() {
     echo -e "${RED}Error: $CONFIG_FILE is missing required VM fields (name, cpus, memory, disk)!${RESET}"
     exit 1
   fi
+
+  # Check for duplicate VM names
+  if jq -r '.vms[].name' "$CONFIG_FILE" | sort | uniq -d | grep -q .; then
+    echo -e "${RED}Error: Duplicate VM names found in $CONFIG_FILE!${RESET}"
+    exit 1
+  fi
+
+  # Check for disk values without "G" unit
+  if jq -r '.vms[].disk' "$CONFIG_FILE" | grep -vE '^[0-9]+G$' | grep -q .; then
+    echo -e "${RED}Error: Disk values must include the 'G' unit (e.g., '10G') in $CONFIG_FILE!${RESET}"
+    exit 1
+  fi
+
+  # Check for additional schema errors
+  if ! jq -e '.vms[] | select(.name and .cpus and .memory and .disk)' "$CONFIG_FILE" >/dev/null 2>&1; then
+    echo -e "${RED}Error: $CONFIG_FILE contains invalid VM schema! Ensure all VMs have name, cpus, memory, and disk fields.${RESET}"
+    exit 1
+  fi
 }
 
 # Load configuration
