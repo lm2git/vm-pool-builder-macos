@@ -94,6 +94,30 @@ vm2 - IP: 192.168.64.3
 
 ---
 
+## 🧹 Cleanup Process
+
+If you need to delete the VMs created by this tool, you can use the `cleanup.sh` script. This script removes only the VMs defined in the `config.json` file and cleans up residual data.
+
+### Steps to Run the Cleanup Script
+
+1. Ensure the `config.json` file is properly configured and contains the names of the VMs you want to delete.
+2. Make the `cleanup.sh` script executable:
+
+   ```bash
+   chmod +x cleanup.sh
+   ```
+
+3. Run the script:
+
+   ```bash
+   ./cleanup.sh
+   ```
+
+   - The script will delete the VMs listed in `config.json`.
+   - It will also purge deleted VMs and clean up the `cloud-init/` directory.
+
+---
+
 ## 🛠️ Customize with Ansible
 
 The `ansible/playbook.yml` file is used to configure the VMs. Modify it as needed and re-run the playbook:
