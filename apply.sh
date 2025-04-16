@@ -67,9 +67,10 @@ for VM_CONFIG in $(jq -c '.vms[]' "$CONFIG_FILE"); do
       multipass stop "$NAME"
 
       echo -e "${CYAN}Preserving disk data for $NAME...${RESET}"
-      DISK_PATH=$(multipass info "$NAME" | grep "Mounts" -A 1 | tail -n 1 | awk '{print $2}')
-      if [[ -z "$DISK_PATH" ]]; then
-        echo -e "${RED}Error: Could not retrieve disk path for $NAME. Skipping update.${RESET}"
+      BACKUP_DIR="backups/$NAME"
+      mkdir -p "$BACKUP_DIR"
+      if ! multipass transfer "$NAME:/mnt" "$BACKUP_DIR"; then
+        echo -e "${RED}Error: Failed to back up data for $NAME. Skipping update.${RESET}"
         multipass start "$NAME"
         continue
       fi
@@ -87,11 +88,11 @@ for VM_CONFIG in $(jq -c '.vms[]' "$CONFIG_FILE"); do
         continue
       fi
 
-      echo -e "${CYAN}Reattaching preserved disk data to $NAME...${RESET}"
-      multipass mount "$DISK_PATH" "$NAME:/mnt" || {
-        echo -e "${RED}Error: Failed to reattach disk data to $NAME.${RESET}"
+      echo -e "${CYAN}Restoring preserved disk data to $NAME...${RESET}"
+      if ! multipass transfer "$BACKUP_DIR" "$NAME:/mnt"; then
+        echo -e "${RED}Error: Failed to restore disk data to $NAME. Skipping.${RESET}"
         continue
-      }
+      fi
     else
       echo -e "${GREEN}VM $NAME already matches the desired specifications. Skipping update.${RESET}"
     fi
