@@ -11,10 +11,21 @@ RESET='\033[0m'
 SCRIPT_DIR="$(pwd)"
 CONFIG_FILE="config.json"
 
-# Ensure config.json exists
+# Ensure config.json exists and is valid
 function check_config_file() {
   if [[ ! -f "$CONFIG_FILE" ]]; then
     echo -e "${RED}Error: $CONFIG_FILE not found!${RESET}"
+    exit 1
+  fi
+
+  if ! jq empty "$CONFIG_FILE" >/dev/null 2>&1; then
+    echo -e "${RED}Error: $CONFIG_FILE is not a valid JSON file!${RESET}"
+    exit 1
+  fi
+
+  # Validate required fields
+  if ! jq -e '.vms[] | .name and .cpus and .memory and .disk' "$CONFIG_FILE" >/dev/null 2>&1; then
+    echo -e "${RED}Error: $CONFIG_FILE is missing required VM fields (name, cpus, memory, disk)!${RESET}"
     exit 1
   fi
 }
