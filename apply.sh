@@ -56,28 +56,47 @@ for VM_CONFIG in $(jq -c '.vms[]' "$CONFIG_FILE"); do
 
   if echo "$CURRENT_VMS" | grep -q "^$NAME$"; then
     echo -e "${CYAN}Updating existing VM: $NAME${RESET}"
-    multipass stop "$NAME"
-    multipass delete "$NAME"
-    multipass purge
+
+    # Check and update VM specifications
+    CURRENT_CPUS=$(multipass info "$NAME" | grep "CPUs" | awk '{print $2}')
+    CURRENT_MEMORY=$(multipass info "$NAME" | grep "Memory" | awk '{print $2}')
+    CURRENT_DISK=$(multipass info "$NAME" | grep "Disk" | awk '{print $2}')
+
+    if [[ "$CURRENT_CPUS" != "$CPUS" || "$CURRENT_MEMORY" != "$MEMORY" || "$CURRENT_DISK" != "$DISK" ]]; then
+      echo -e "${YELLOW}Stopping VM to apply new specifications...${RESET}"
+      multipass stop "$NAME"
+
+      echo -e "${CYAN}Applying new specifications: CPUs=$CPUS, Memory=$MEMORY, Disk=$DISK${RESET}"
+      multipass set "$NAME" cpus="$CPUS" memory="$MEMORY" disk="$DISK" || {
+        echo -e "${RED}Error: Failed to update specifications for $NAME. Restarting VM.${RESET}"
+        multipass start "$NAME"
+        continue
+      }
+
+      echo -e "${GREEN}Restarting VM: $NAME${RESET}"
+      multipass start "$NAME"
+    else
+      echo -e "${GREEN}VM $NAME already matches the desired specifications. Skipping update.${RESET}"
+    fi
   else
     echo -e "${GREEN}Creating new VM: $NAME${RESET}"
-  fi
 
-  # Generate cloud-init file
-  echo -e "${CYAN}Generating cloud-init for $NAME...${RESET}"
-  mkdir -p cloud-init
-  if ! python3 generate_cloud_init.py "$NAME"; then
-    echo -e "${RED}Error: Failed to generate cloud-init for $NAME. Skipping VM creation.${RESET}"
-    continue
-  fi
+    # Generate cloud-init file
+    echo -e "${CYAN}Generating cloud-init for $NAME...${RESET}"
+    mkdir -p cloud-init
+    if ! python3 generate_cloud_init.py "$NAME"; then
+      echo -e "${RED}Error: Failed to generate cloud-init for $NAME. Skipping VM creation.${RESET}"
+      continue
+    fi
 
-  # Launch VM
-  if ! multipass launch 22.04 --name "$NAME" \
-    --cpus "$CPUS" --memory "$MEMORY" --disk "$DISK" \
-    --cloud-init "cloud-init/$NAME.yaml" \
-    --timeout 300; then
-    echo -e "${RED}Error: Failed to launch VM $NAME. Skipping.${RESET}"
-    continue
+    # Launch VM
+    if ! multipass launch 22.04 --name "$NAME" \
+      --cpus "$CPUS" --memory "$MEMORY" --disk "$DISK" \
+      --cloud-init "cloud-init/$NAME.yaml" \
+      --timeout 300; then
+      echo -e "${RED}Error: Failed to launch VM $NAME. Skipping.${RESET}"
+      continue
+    fi
   fi
 done
 
