@@ -7,8 +7,10 @@ This repository automates the creation and configuration of a pool of virtual ma
 ## ✨ Features
 
 - ✅ **Automated Dependency Installation**: Homebrew, Multipass, jq, Python3, Ansible, Git.
-- ✅ **VM Creation**: Based on a customizable configuration file (`config.json`).
-- ✅ **Cloud-Init Support**: Automatically generates cloud-init configurations for each VM.
+- ✅ **VM Pool Reconciliation**: Ensures the VM pool matches the desired state defined in `config.json`:
+  - Removes VMs not listed in `config.json`.
+  - Adds or updates VMs to match the desired specifications.
+- ✅ **Cloud-Init Support**: Automatically regenerates cloud-init configurations for each VM.
 - ✅ **Ansible Integration**: Auto-generates inventory files and runs playbooks for VM setup.
 - ✅ **Secure Access**: SSH key generation for secure VM access.
 
@@ -27,7 +29,7 @@ Ensure your macOS system meets the following requirements:
 ```plaintext
 /scripts
 ├── prerequisites.sh       # Installs all required dependencies
-├── create_vms.sh          # Main script to create and configure VMs
+├── apply.sh               # Main script to reconcile and configure VMs
 ├── generate_cloud_init.py # Generates cloud-init files
 ├── config.json            # Configuration file for VM specifications
 ├── ansible/
@@ -76,11 +78,16 @@ Edit the `config.json` file to define your VM specifications. Example:
 Make the script executable and run it:
 
 ```bash
-chmod +x create_vms.sh
-./create_vms.sh
+chmod +x apply.sh
+./apply.sh
 ```
 
 - The script installs prerequisites if not already installed.
+- It reconciles the VM pool:
+  - Removes VMs not listed in `config.json`.
+  - Adds or updates VMs to match the desired state.
+  - Regenerates cloud-init files and `inventory.ini`.
+  - Applies Ansible configuration to all VMs.
 - After completion, it displays VM details, including IP addresses and SSH commands.
 
 Example output:
@@ -96,34 +103,16 @@ vm2 - IP: 192.168.64.3
 
 ## 🧹 Cleanup Process
 
-If you need to delete the VMs created by this tool, you can use the `cleanup.sh` script. This script removes only the VMs defined in the `config.json` file and cleans up residual data.
-
-### Steps to Run the Cleanup Script
-
-1. Ensure the `config.json` file is properly configured and contains the names of the VMs you want to delete.
-2. Make the `cleanup.sh` script executable:
-
-   ```bash
-   chmod +x cleanup.sh
-   ```
-
-3. Run the script:
-
-   ```bash
-   ./cleanup.sh
-   ```
-
-   - The script will delete the VMs listed in `config.json`.
-   - It will also purge deleted VMs and clean up the `cloud-init/` directory.
+If you need to delete the VMs created by this tool, you can use the `apply.sh` script with an empty `vms` array in `config.json`. This will remove all VMs and clean up residual data.
 
 ---
 
 ## 🛠️ Customize with Ansible
 
-The `ansible/playbook.yml` file is used to configure the VMs. Modify it as needed and re-run the playbook:
+The `ansible/playbook.yml` file is used to configure the VMs. Modify it as needed and re-run the script:
 
 ```bash
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.ini ansible/playbook.yml
+./apply.sh
 ```
 
 - The `inventory.ini` file is auto-generated.
@@ -142,7 +131,7 @@ ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.ini ansible/playbo
 
 - Ensure **Multipass** is installed and running correctly.
 - Verify the `config.json` file is properly formatted.
-- Check logs for errors during VM creation or Ansible execution.
+- Check logs for errors during VM reconciliation or Ansible execution.
 
 ---
 
