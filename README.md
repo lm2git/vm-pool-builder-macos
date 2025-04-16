@@ -13,6 +13,10 @@ This repository automates the creation and configuration of a pool of virtual ma
 - ✅ **Cloud-Init Support**: Automatically regenerates cloud-init configurations for each VM.
 - ✅ **Ansible Integration**: Auto-generates inventory files and runs playbooks for VM setup.
 - ✅ **Secure Access**: SSH key generation for secure VM access.
+- ✅ **Enhanced Validation**: 
+  - Detects duplicate VM names in `config.json`.
+  - Ensures disk values include the "G" unit (e.g., `10G`).
+  - Validates the schema of `config.json` for required fields.
 
 ---
 
@@ -72,6 +76,11 @@ Edit the `config.json` file to define your VM specifications. Example:
   ]
 }
 ```
+
+> **Note**: Ensure the following:
+> - VM names are unique.
+> - Disk values include the "G" unit (e.g., `10G`).
+> - All VMs have `name`, `cpus`, `memory`, and `disk` fields.
 
 ### Step 3: Run the Main Script
 
