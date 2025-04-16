@@ -80,14 +80,18 @@ function update_vm() {
   CURRENT_DISK=$(multipass info "$NAME" | grep "Disk" | awk '{print $2}')
 
   if [[ "$CURRENT_CPUS" != "$CPUS" || "$CURRENT_MEMORY" != "$MEMORY" || "$CURRENT_DISK" != "$DISK" ]]; then
-    echo -e "${YELLOW}Updating specifications for VM: $NAME...${RESET}"
-    multipass stop "$NAME"
+    echo -e "${YELLOW}VM $NAME requires updates to specifications.${RESET}"
 
+    if [[ "$CURRENT_CPUS" != "$CPUS" || "$CURRENT_MEMORY" != "$MEMORY" || "$CURRENT_DISK" != "$DISK" ]]; then
+      echo -e "${YELLOW}Skipping updates that require stopping and starting VM: $NAME.${RESET}"
+      return
+    fi
+
+    # Apply updates that do not require stopping the VM
     [[ "$CURRENT_CPUS" != "$CPUS" ]] && multipass set "local.$NAME.cpus=$CPUS"
     [[ "$CURRENT_MEMORY" != "$MEMORY" ]] && multipass set "local.$NAME.memory=$MEMORY"
     [[ "$CURRENT_DISK" != "$DISK" ]] && multipass set "local.$NAME.disk=$DISK"
 
-    multipass start "$NAME"
     echo -e "${GREEN}Updated specifications for VM: $NAME.${RESET}"
   else
     echo -e "${GREEN}VM $NAME already matches the desired specifications. Skipping update.${RESET}"
