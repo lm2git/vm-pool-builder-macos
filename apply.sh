@@ -178,8 +178,27 @@ function display_vm_details() {
   echo -e "\n${GREEN}✅ Reconciliation completed successfully.${RESET}"
 }
 
+# Run prerequisites if the user agrees
+function run_prerequisites() {
+  echo -e "${CYAN}Do you want to run dependencies and prerequisites? (y/n)${RESET}"
+  read -r RESPONSE
+  if [[ "$RESPONSE" =~ ^[Yy]$ ]]; then
+    echo -e "${CYAN}Running prerequisites...${RESET}"
+    if [[ -f "scripts/prerequisites.sh" ]]; then
+      chmod +x scripts/prerequisites.sh
+      ./scripts/prerequisites.sh
+    else
+      echo -e "${RED}Error: prerequisites.sh not found in the scripts folder!${RESET}"
+      exit 1
+    fi
+  else
+    echo -e "${YELLOW}Skipping prerequisites.${RESET}"
+  fi
+}
+
 # Main script execution
 function main() {
+  run_prerequisites
   check_config_file
   load_config
   get_current_vms
