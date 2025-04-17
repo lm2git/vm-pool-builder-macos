@@ -1,30 +1,20 @@
 #!/bin/bash
 
-# warning: this script will delete only VMs defined in the config.json file
+# Colors
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+RESET='\033[0m'
 
-CONFIG_FILE="../config.json"
+# Cleanup all VMs managed by Multipass
+function cleanup_vms() {
+  echo -e "${CYAN}🧹 Cleaning up all VMs managed by Multipass...${RESET}"
+  for VM in $(multipass list --format json | jq -r '.list[].name'); do
+    echo -e "${YELLOW}Deleting VM: $VM${RESET}"
+    multipass delete "$VM"
+  done
+  multipass purge
+  echo -e "${GREEN}✅ All VMs have been cleaned up.${RESET}"
+}
 
-if [[ ! -f "$CONFIG_FILE" ]]; then
-  echo "Error: $CONFIG_FILE not found!"
-  exit 1
-fi
-
-# Extract VM names from config.json
-VM_NAMES=$(jq -r '.vms[].name' "$CONFIG_FILE")
-
-if [[ -z "$VM_NAMES" ]]; then
-  echo "No VMs found in $CONFIG_FILE."
-  exit 0
-fi
-
-# Delete each VM
-for VM in $VM_NAMES; do
-  echo "Deleting VM: $VM"
-  multipass delete "$VM"
-done
-
-# Purge deleted VMs
-multipass purge
-
-# Clean up cloud-init files
-rm -Rvf cloud-init/*
+cleanup_vms

@@ -202,6 +202,7 @@ function display_help() {
   echo -e "${CYAN}Options:${RESET}"
   echo -e "  ${YELLOW}--help${RESET}       Display this help message."
   echo -e "  ${YELLOW}--shutdown${RESET}   Stop all VMs listed in config.json."
+  echo -e "  ${YELLOW}--cleanup${RESET}    Remove all VMs managed by the script."
   exit 0
 }
 
@@ -216,6 +217,18 @@ function shutdown_vms() {
   exit 0
 }
 
+# Cleanup all VMs managed by Multipass
+function cleanup_vms() {
+  echo -e "${CYAN}🧹 Cleaning up all VMs managed by Multipass...${RESET}"
+  if [[ -f "scripts/cleanup.sh" ]]; then
+    chmod +x scripts/cleanup.sh
+    ./scripts/cleanup.sh
+  else
+    echo -e "${RED}Error: cleanup.sh not found in the scripts folder!${RESET}"
+    exit 1
+  fi
+}
+
 # Main script execution
 function main() {
   # Parse command-line arguments
@@ -225,6 +238,8 @@ function main() {
     check_config_file
     load_config
     shutdown_vms
+  elif [[ "$1" == "--cleanup" ]]; then
+    cleanup_vms
   fi
 
   run_prerequisites
