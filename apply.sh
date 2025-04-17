@@ -196,8 +196,37 @@ function run_prerequisites() {
   fi
 }
 
+# Display help message
+function display_help() {
+  echo -e "${CYAN}Usage: ./apply.sh [OPTIONS]${RESET}"
+  echo -e "${CYAN}Options:${RESET}"
+  echo -e "  ${YELLOW}--help${RESET}       Display this help message."
+  echo -e "  ${YELLOW}--shutdown${RESET}   Stop all VMs listed in config.json."
+  exit 0
+}
+
+# Stop all VMs listed in config.json
+function shutdown_vms() {
+  echo -e "${CYAN}🔄 Stopping all VMs listed in config.json...${RESET}"
+  for VM in $DESIRED_VMS; do
+    echo -e "${YELLOW}Stopping VM: $VM${RESET}"
+    multipass stop "$VM"
+  done
+  echo -e "${GREEN}✅ All VMs have been stopped.${RESET}"
+  exit 0
+}
+
 # Main script execution
 function main() {
+  # Parse command-line arguments
+  if [[ "$1" == "--help" ]]; then
+    display_help
+  elif [[ "$1" == "--shutdown" ]]; then
+    check_config_file
+    load_config
+    shutdown_vms
+  fi
+
   run_prerequisites
   check_config_file
   load_config
@@ -211,4 +240,4 @@ function main() {
   display_vm_details
 }
 
-main
+main "$@"
