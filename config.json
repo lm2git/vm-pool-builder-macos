@@ -3,8 +3,8 @@
     "domain": "lab.local",
     "root_password": "ubuntu",
     "vms": [
-      { "name": "my-vm1", "cpus": 2, "memory": "2G", "disk": "35G" },
-      { "name": "my-vm2", "cpus": 4, "memory": "4G", "disk": "50G" }
+      { "name": "ubuntu5", "cpus": 2, "memory": "2G", "disk": "35G" },
+      { "name": "ubuntu6", "cpus": 4, "memory": "4G", "disk": "50G" }
     ]
 }
 

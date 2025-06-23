@@ -175,6 +175,53 @@ function display_vm_details() {
     echo -e "${YELLOW}$name${RESET} - IP: ${GREEN}$ip${RESET}"
     echo -e "   ➤ SSH: ${CYAN}ssh -i ${SCRIPT_DIR}/ssh_keys/id_rsa root@$ip${RESET}"
   done
+
+  # Prepare hosts entries
+  HOSTS_ENTRIES="127.0.0.1 localhost"
+  for VM in $DESIRED_VMS; do
+    IP=$(multipass info "$VM" | grep "IPv4" | awk '{print $2}')
+    if [[ -n "$IP" ]]; then
+      HOSTS_ENTRIES="$HOSTS_ENTRIES"$'\n'"$IP $VM.$DOMAIN $VM"
+    fi
+  done
+
+  echo -e "\n${CYAN}Do you want to add records to your /etc/hosts? (y/n)${RESET}"
+  read -r ADD_HOSTS
+  if [[ "$ADD_HOSTS" =~ ^[Yy]$ ]]; then
+    # Check for existing entries
+    ENTRIES_TO_ADD=""
+    CONFLICT=false
+    while read -r line; do
+      [[ -z "$line" ]] && continue
+      # Skip localhost line for check
+      if [[ "$line" == "127.0.0.1 localhost" ]]; then
+        continue
+      fi
+      # Check if entry already exists
+      if grep -qF "$line" /etc/hosts; then
+        echo -e "${YELLOW}Entry already present: $line${RESET}"
+        CONFLICT=true
+      else
+        ENTRIES_TO_ADD="$ENTRIES_TO_ADD"$'\n'"$line"
+      fi
+    done <<< "$HOSTS_ENTRIES"
+
+    if [[ "$CONFLICT" == true ]]; then
+      echo -e "${RED}Some entries are already present /etc/hosts. check and add it manually:${RESET}"
+      echo "$HOSTS_ENTRIES"
+    fi
+
+    if [[ -n "$ENTRIES_TO_ADD" ]]; then
+      echo -e "${CYAN}Adding these entries to /etc/hosts:${RESET}"
+      echo "$ENTRIES_TO_ADD"
+      echo "$ENTRIES_TO_ADD" | sudo tee -a /etc/hosts > /dev/null
+      echo -e "${GREEN}Entry added /etc/hosts.${RESET}"
+    fi
+  else
+    echo -e "${YELLOW}Automatic entry gen skipped! please copy and paste in your /etc/hosts:${RESET}"
+    echo "$HOSTS_ENTRIES"
+  fi
+
   echo -e "\n${GREEN}✅ Reconciliation completed successfully.${RESET}"
 }
 
