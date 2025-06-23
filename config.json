@@ -1,7 +1,6 @@
 {
     "interface": "en0",
     "domain": "lab.local",
-    "baseDomain": "lab.local",
     "root_password": "ubuntu",
     "vms": [
       { "name": "my-vm1", "cpus": 2, "memory": "2G", "disk": "35G" },

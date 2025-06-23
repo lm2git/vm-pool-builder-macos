@@ -1,7 +1,5 @@
 - name: Configure the ubuntu VMs
   hosts: lab
   become: true
-  vars:
-    baseDomain: "{{ baseDomain | default('lab.local') }}"
   roles:
     - common
