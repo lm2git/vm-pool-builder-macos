@@ -2,4 +2,6 @@
   hosts: lab
   become: true
   roles:
-    - common
+    - role: common
+      vars:
+        baseDomain: "{{ baseDomain | default(lookup('env','BASE_DOMAIN') | default('example.local')) }}"

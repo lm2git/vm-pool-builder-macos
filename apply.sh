@@ -51,8 +51,25 @@ function check_config_file() {
 # Load configuration
 function load_config() {
   INTERFACE=$(jq -r '.interface' "$CONFIG_FILE")
-  DOMAIN=$(jq -r '.domain' "$CONFIG_FILE")
+  DOMAIN=$(jq -r '.domain // empty' "$CONFIG_FILE")
+  BASE_DOMAIN=$(jq -r '.baseDomain // empty' "$CONFIG_FILE")
   DESIRED_VMS=$(jq -r '.vms[].name' "$CONFIG_FILE")
+}
+
+# Prompt for baseDomain if not set and update config.json
+function ensure_base_domain() {
+  BASE_DOMAIN=$(jq -r '.baseDomain // empty' "$CONFIG_FILE")
+  if [[ -z "$BASE_DOMAIN" || "$BASE_DOMAIN" == "null" ]]; then
+    echo -e "${CYAN}Enter base domain to use for FQDN (e.g. example.local):${RESET}"
+    read -r BASE_DOMAIN
+    if [[ -z "$BASE_DOMAIN" ]]; then
+      echo -e "${RED}Error: baseDomain is required!${RESET}"
+      exit 1
+    fi
+    # Update config.json with baseDomain
+    tmp=$(mktemp)
+    jq --arg bd "$BASE_DOMAIN" '.baseDomain = $bd' "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
+  fi
 }
 
 # Get current VMs from Multipass
@@ -155,9 +172,47 @@ function generate_inventory() {
   for VM in $DESIRED_VMS; do
     IP=$(multipass info "$VM" | grep "IPv4" | awk '{print $2}')
     if [[ -n "$IP" ]]; then
-      echo "$VM.$DOMAIN ansible_host=$IP ansible_user=root ansible_ssh_private_key_file=ssh_keys/id_rsa" >> inventory.ini
+      echo "$VM.$BASE_DOMAIN ansible_host=$IP ansible_user=root ansible_ssh_private_key_file=ssh_keys/id_rsa" >> inventory.ini
     else
       echo -e "${YELLOW}Warning: No IP found for VM '$VM'. Skipping.${RESET}"
+    fi
+  done
+}
+
+# Update /etc/hosts on the host
+function update_local_hosts() {
+  echo -e "${CYAN}Updating /etc/hosts on the host...${RESET}"
+  TMP_HOSTS=$(mktemp)
+  sudo cp /etc/hosts "$TMP_HOSTS"
+  # Remove old managed entries
+  sudo sed -i '' '/# VM-POOL-BEGIN/,/# VM-POOL-END/d' "$TMP_HOSTS"
+  echo "# VM-POOL-BEGIN" | sudo tee -a "$TMP_HOSTS" >/dev/null
+  for VM in $DESIRED_VMS; do
+    IP=$(multipass info "$VM" | grep "IPv4" | awk '{print $2}')
+    if [[ -n "$IP" ]]; then
+      echo "$IP $VM $VM.$BASE_DOMAIN" | sudo tee -a "$TMP_HOSTS" >/dev/null
+    fi
+  done
+  echo "# VM-POOL-END" | sudo tee -a "$TMP_HOSTS" >/dev/null
+  sudo cp "$TMP_HOSTS" /etc/hosts
+  rm "$TMP_HOSTS"
+}
+
+# Update /etc/hosts inside each VM
+function update_vm_hosts() {
+  echo -e "${CYAN}Updating /etc/hosts inside each VM...${RESET}"
+  for VM in $DESIRED_VMS; do
+    IP=$(multipass info "$VM" | grep "IPv4" | awk '{print $2}')
+    if [[ -n "$IP" ]]; then
+      multipass exec "$VM" -- bash -c "sudo sed -i '/# VM-POOL-BEGIN/,/# VM-POOL-END/d' /etc/hosts"
+      multipass exec "$VM" -- bash -c "echo '# VM-POOL-BEGIN' | sudo tee -a /etc/hosts"
+      for VM2 in $DESIRED_VMS; do
+        IP2=$(multipass info "$VM2" | grep "IPv4" | awk '{print $2}')
+        if [[ -n \"\$IP2\" ]]; then
+          multipass exec "$VM" -- bash -c \"echo '\$IP2 $VM2 $VM2.$BASE_DOMAIN' | sudo tee -a /etc/hosts\"
+        fi
+      done
+      multipass exec "$VM" -- bash -c "echo '# VM-POOL-END' | sudo tee -a /etc/hosts"
     fi
   done
 }
@@ -244,6 +299,7 @@ function main() {
 
   run_prerequisites
   check_config_file
+  ensure_base_domain
   load_config
   get_current_vms
   echo -e "${CYAN}🔄 Reconciling VM pool with config.json...${RESET}"
@@ -251,6 +307,8 @@ function main() {
   ensure_ssh_keys
   reconcile_vms
   generate_inventory
+  update_local_hosts
+  update_vm_hosts
   apply_ansible_playbook
   display_vm_details
 }

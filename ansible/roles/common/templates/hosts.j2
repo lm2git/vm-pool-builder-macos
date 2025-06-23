@@ -1,4 +1,7 @@
 127.0.0.1 localhost
+# VM-POOL-BEGIN
+{% set baseDomain = baseDomain | default('example.local') %}
 {% for host in groups['lab'] %}
-{{ hostvars[host]['ansible_host'] }} {{ host }} {{ host.split('.')[0] }}
+{{ hostvars[host]['ansible_host'] }} {{ host }} {{ host }}.{{ baseDomain }}
 {% endfor %}
+# VM-POOL-END
